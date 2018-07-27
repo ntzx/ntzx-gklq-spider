@@ -138,7 +138,7 @@ function cleanRecord (rc) {
     rc[key] = rc[key].replace(patt, '')
   }
 
-  if (rc.$sex !== '男' || rc.$sex !== '女') {
+  if (rc.$sex !== '男' && rc.$sex !== '女') {
     rc.$sex = ''
   }
 
