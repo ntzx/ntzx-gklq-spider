@@ -2,6 +2,8 @@ import axios from 'axios'
 import iconv from 'iconv-lite'
 import sqlite3 from 'sqlite3'
 
+import { newRecord, cleanRecord } from './records'
+
 var db = new sqlite3.Database('ntzx-gklq-data.db')
 
 export function main () {
@@ -35,7 +37,7 @@ function initDB () {
 function extractData (text) {
   text = /<center[\s\S]*?\/center>/.exec(text)[0]
   let patt = /<td.+?><font.*?>.*?<\/font>.*?<\/td>[\s\S]*?<td.+?>(.*?)<\/td>[\s\S]*?<td.+?>(.*?)<\/td>[\s\S]*?<td.+?>(.*?)<\/td>[\s\S]*?<td.+?>(.*?)<\/td>[\s\S]*?<td.+?>(.*?)<\/td>[\s\S]*?<td.+?>(.*?)<\/td>[\s\S]*?<td.+?>(.*?)<\/td>[\s\S]*?<td.+?>(.*?)<\/td>/g
-  // id name sex university elementary major junior year
+  // id name sex university major elementary junior year
 
   let parts = []
   let r = 1
@@ -45,17 +47,7 @@ function extractData (text) {
   }
   parts.splice(0, 1)
 
-  parts = parts.map(p => ({
-    $id: p[1],
-    $name: p[2],
-    $sex: p[3],
-    $university: p[4],
-    $major: p[5],
-    $elementary: p[6],
-    $junior: p[7],
-    $year: p[8]
-  }))
-  return parts
+  return parts.map(p => newRecord(...p.slice(1, 9)))
 }
 
 async function sendGet (page) {
@@ -88,7 +80,7 @@ async function sendGet (page) {
 async function download () {
   var flag = true
   var page = 1
-  var chunknum = 50
+  var chunknum = 100
 
   while (flag) {
     let ps = []
@@ -124,33 +116,12 @@ var handleRecords = (() => {
         (res, err) => {
           ++count
           console.log(
-            rc.$id + (err ? ` fail: ${err}` : ' success') + ` count: ${count}`
+            rc.$id +
+              (err ? ` failure: ${err}` : ' success') +
+              ` count: ${count}`
           )
         }
       )
     })
   }
 })()
-
-function cleanRecord (rc) {
-  let patt = /(^\s*)|(\s*$)/g
-  for (let key in rc) {
-    rc[key] = rc[key].replace(patt, '')
-  }
-
-  if (rc.$sex !== '男' && rc.$sex !== '女') {
-    rc.$sex = ''
-  }
-
-  if (rc.$major === '1') {
-    rc.$major = ''
-  }
-
-  if (rc.$elementary === '1' || rc.$elementary === '55') {
-    rc.$elementary = ''
-  }
-
-  if (rc.$junior === '1' || rc.$junior === '55') {
-    rc.$junior = ''
-  }
-}
